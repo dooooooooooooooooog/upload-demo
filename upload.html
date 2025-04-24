@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head><meta charset="UTF-8"><title>Cloudinary 上傳示範</title></head>
+<body>
+  <h1>請選擇圖片並上傳</h1>
+  <input type="file" id="fileInput" accept="image/*" />
+  <button id="btnUpload">上傳</button>
+  <p id="txtStatus"></p>
+
+  <script>
+    const cloudName    = 'dhitgg34o';          // 改成你的 Cloudinary Cloud name
+    const uploadPreset = 'unsigned_preset';         // 你在控制台建立的 unsigned preset
+
+    document.getElementById('btnUpload').onclick = async () => {
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) return alert('請先選擇檔案！');
+      document.getElementById('txtStatus').innerText = '上傳中…';
+
+      // 組 form data
+      const form = new FormData();
+      form.append('file', file);
+      form.append('upload_preset', uploadPreset);
+
+      try {
+        // Cloudinary 預設已啟用 CORS，跨網域可直接呼叫
+        const res  = await fetch(
+          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+          { method:'POST', body: form }
+        );
+        const data = await res.json();
+        document.getElementById('txtStatus').innerHTML =
+          `✔ 上傳完成！<br>圖片 URL：<a href="${data.secure_url}" target="_blank">${data.secure_url}</a>`;
+      } catch (err) {
+        console.error(err);
+        document.getElementById('txtStatus').innerText = '❌ 上傳失敗';
+      }
+    };
+  </script>
+</body>
+</html>
