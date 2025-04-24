@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-<head><meta charset="UTF-8"><title>Cloudinary 上傳示範</title></head>
+<head>
+  <meta charset="UTF-8">
+  <title>Cloudinary 上傳示範</title>
+</head>
 <body>
   <h1>請選擇圖片並上傳</h1>
   <input type="file" id="fileInput" accept="image/*" />
@@ -9,12 +12,17 @@
 
   <script>
     const cloudName    = 'dhitgg34o';          // 改成你的 Cloudinary Cloud name
-    const uploadPreset = 'unsigned_preset';         // 你在控制台建立的 unsigned preset
+    const uploadPreset = 'unsigned_preset';    // 你在控制台建立的 unsigned preset
+    const analyzeUrl   = 'http://localhost:3000/analyze'; // 你的後端分析 API
 
     document.getElementById('btnUpload').onclick = async () => {
       const file = document.getElementById('fileInput').files[0];
-      if (!file) return alert('請先選擇檔案！');
-      document.getElementById('txtStatus').innerText = '上傳中…';
+      if (!file) {
+        alert('請先選擇檔案！');
+        return;
+      }
+      const statusEl = document.getElementById('txtStatus');
+      statusEl.innerText = '上傳中…';
 
       // 組 form data
       const form = new FormData();
@@ -22,17 +30,31 @@
       form.append('upload_preset', uploadPreset);
 
       try {
-        // Cloudinary 預設已啟用 CORS，跨網域可直接呼叫
+        // 1. 上傳到 Cloudinary
         const res  = await fetch(
           `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-          { method:'POST', body: form }
+          { method: 'POST', body: form }
         );
         const data = await res.json();
-        document.getElementById('txtStatus').innerHTML =
-          `✔ 上傳完成！<br>圖片 URL：<a href="${data.secure_url}" target="_blank">${data.secure_url}</a>`;
+        const imageUrl = data.secure_url;
+        statusEl.innerHTML =
+          `✔ 上傳完成！<br>圖片 URL：<a href="${imageUrl}" target="_blank">${imageUrl}</a>`;
+
+        // 2. 自動呼叫後端分析
+        statusEl.innerHTML += '<br>通知伺服器分析中…';
+        const analyzeRes = await fetch(analyzeUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl })
+        });
+        if (analyzeRes.ok) {
+          statusEl.innerHTML += '<br>✅ 已通知伺服器並開始分析';
+        } else {
+          statusEl.innerHTML += `<br>❌ 分析伺服器錯誤：${analyzeRes.status}`;
+        }
       } catch (err) {
         console.error(err);
-        document.getElementById('txtStatus').innerText = '❌ 上傳失敗';
+        statusEl.innerText = '❌ 上傳或通知失敗，請檢查主控台錯誤';
       }
     };
   </script>
